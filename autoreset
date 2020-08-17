@@ -22,8 +22,6 @@ def process():
         try:
             duration = time.time() - start
             text = sys.stdin.readline().strip()
-            if text is None: # == "":  # FIXME strip will never return None
-                text = sys.stdin.readline().strip()
             if DTR in text:
                 reset()
                 return  # FIXME this will close stdin at exit and caused Broken Pipe errors. We should continue to act as a filter.
