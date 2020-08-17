@@ -1,45 +1,49 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 
+import sys
+import os
+import time
+import fcntl
 import RPi.GPIO as GPIO
-import sys, os, re, time, fcntl
-import errno
 
-fd = sys.stdin.fileno()
-fl = fcntl.fcntl(fd, fcntl.F_GETFL)
-fcntl.fcntl(fd, fcntl.F_SETFL, fl | os.O_NONBLOCK)
-
-GPIO.setwarnings(False)
-GPIO.setmode(GPIO.BOARD)
-dtr = re.compile('.+TIOCM_DTR.+')
-start = time.time()
-pin = 7
+DTR = 'TIOCM_DTR'
+PIN = 7
 
 def reset():
-  GPIO.setup(pin, GPIO.OUT)
-  GPIO.output(pin, GPIO.HIGH)
-  time.sleep(0.32)
-  GPIO.output(pin, GPIO.LOW)
+    GPIO.setup(PIN, GPIO.OUT)
+    GPIO.output(PIN, GPIO.HIGH)
+    time.sleep(0.32)  # FIXME arbitrary constant. where did it come from? give it a name.
+    GPIO.output(PIN, GPIO.LOW)
 
 def process():
-  while True:
-    try: 
-      duration = time.time() - start
-      input = sys.stdin.readline().strip()
-      if input is None: # == "":
-        input = sys.stdin.readline().strip()
-      if dtr.match(input):
-        reset()
-        return
-      elif duration > 5000:
-        return
-    except Exception as e:
-      if hasattr(e, 'errno'):
-	if e.errno != 11: # Ignore resource unavailable
-         raise
-      else:
-        raise
+    start = time.time()
+    while True:
+        try:
+            duration = time.time() - start
+            text = sys.stdin.readline().strip()
+            if text is None: # == "":  # FIXME strip will never return None
+                text = sys.stdin.readline().strip()
+            if DTR in text:
+                reset()
+                return  # FIXME this will close stdin at exit and caused Broken Pipe errors. We should continue to act as a filter.
+            elif duration > 5000: # FIXME arbitrary constant. 5000 seconds (1h23m) is a long time. where did it come from?
+                return
+        except Exception as e:
+            if hasattr(e, 'errno'):  # FIXME ignoring EAGAIN is a side-effect of using non-blocking IO, but readline hides this from us and returns '' if there is no data. Don't use non-blocking IO.
+                if e.errno != 11: # Ignore resource unavailable
+                    raise
+            else:
+                raise
+def main():
+    fd = sys.stdin.fileno()
+    fl = fcntl.fcntl(fd, fcntl.F_GETFL)
+    fcntl.fcntl(fd, fcntl.F_SETFL, fl | os.O_NONBLOCK)
 
-process()
-print "avrdude-original: Using autoreset DTR on GPIO Pin " +str(pin)
-GPIO.cleanup()
-exit
+    GPIO.setwarnings(False)  # FIXME why disable warnings? This seems unwise!
+    GPIO.setmode(GPIO.BOARD)
+    process()
+    print("avrdude-original: Using autoreset DTR on GPIO Pin", PIN)
+    GPIO.cleanup()
+
+if __name__ == '__main__':
+    main()
