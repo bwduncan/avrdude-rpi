@@ -1,9 +1,7 @@
 #!/usr/bin/python3
 
 import sys
-import os
 import time
-import fcntl
 import RPi.GPIO as GPIO
 
 DTR = 'TIOCM_DTR'
@@ -20,25 +18,15 @@ def reset():
 def process():
     start = time.time()
     while True:
-        try:
-            duration = time.time() - start
-            text = sys.stdin.readline().strip()
-            if DTR in text:
-                reset()
-                return  # FIXME this will close stdin at exit and caused Broken Pipe errors. We should continue to act as a filter.
-            elif duration > MAX_TIME:
-                return
-        except Exception as e:
-            if hasattr(e, 'errno'):  # FIXME ignoring EAGAIN is a side-effect of using non-blocking IO, but readline hides this from us and returns '' if there is no data. Don't use non-blocking IO.
-                if e.errno != 11: # Ignore resource unavailable
-                    raise
-            else:
-                raise
-def main():
-    fd = sys.stdin.fileno()
-    fl = fcntl.fcntl(fd, fcntl.F_GETFL)
-    fcntl.fcntl(fd, fcntl.F_SETFL, fl | os.O_NONBLOCK)
+        duration = time.time() - start
+        text = sys.stdin.readline()
+        if DTR in text:
+            reset()
+            return  # FIXME this will close stdin at exit and caused Broken Pipe errors. We should continue to act as a filter.
+        elif duration > MAX_TIME:
+            return
 
+def main():
     GPIO.setwarnings(False)  # FIXME why disable warnings? This seems unwise!
     GPIO.setmode(GPIO.BOARD)
     process()
