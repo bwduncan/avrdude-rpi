@@ -19,16 +19,17 @@ def reset():
 def process():
     while True:
         text = sys.stdin.readline()
+        if not text:
+            return
         if DTR in text:
+            print("avrdude-original: Using autoreset DTR on GPIO Pin", PIN)
             reset()
-            return  # FIXME this will close stdin at exit and caused Broken Pipe errors. We should continue to act as a filter.
 
 def main():
     signal.alarm(MAX_TIME)
     GPIO.setwarnings(False)  # FIXME why disable warnings? This seems unwise!
     GPIO.setmode(GPIO.BOARD)
     process()
-    print("avrdude-original: Using autoreset DTR on GPIO Pin", PIN)
     GPIO.cleanup()
 
 if __name__ == '__main__':
