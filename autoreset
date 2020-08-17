@@ -8,11 +8,12 @@ import RPi.GPIO as GPIO
 
 DTR = 'TIOCM_DTR'
 PIN = 7
+PULSE_TIME = 0.32
 
 def reset():
     GPIO.setup(PIN, GPIO.OUT)
     GPIO.output(PIN, GPIO.HIGH)
-    time.sleep(0.32)  # FIXME arbitrary constant. where did it come from? give it a name.
+    time.sleep(PULSE_TIME)
     GPIO.output(PIN, GPIO.LOW)
 
 def process():
