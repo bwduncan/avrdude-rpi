@@ -2,6 +2,7 @@
 
 import sys
 import time
+import signal
 import RPi.GPIO as GPIO
 
 DTR = 'TIOCM_DTR'
@@ -16,17 +17,14 @@ def reset():
     GPIO.output(PIN, GPIO.LOW)
 
 def process():
-    start = time.time()
     while True:
-        duration = time.time() - start
         text = sys.stdin.readline()
         if DTR in text:
             reset()
             return  # FIXME this will close stdin at exit and caused Broken Pipe errors. We should continue to act as a filter.
-        elif duration > MAX_TIME:
-            return
 
 def main():
+    signal.alarm(MAX_TIME)
     GPIO.setwarnings(False)  # FIXME why disable warnings? This seems unwise!
     GPIO.setmode(GPIO.BOARD)
     process()
